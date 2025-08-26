@@ -1,0 +1,65 @@
+package com.fabio.gerenciadoriptv
+
+import android.content.Intent // <-- ESTE IMPORT ESTAVA FALTANDO
+import android.os.Bundle
+import android.widget.Button
+import android.widget.EditText
+import android.widget.Toast // <-- ESTE IMPORT ESTAVA FALTANDO
+import androidx.appcompat.app.AppCompatActivity
+import com.google.firebase.auth.FirebaseAuth
+
+class LoginActivity : AppCompatActivity() {
+
+    private lateinit var auth: FirebaseAuth
+
+    override fun onStart() {
+        super.onStart()
+        // Inicializa o auth aqui para evitar erro na primeira execução
+        auth = FirebaseAuth.getInstance()
+        // Verifica se o usuário já está logado
+        val currentUser = auth.currentUser
+        if (currentUser != null) {
+            // Se sim, vai direto para a MainActivity
+            goToMainActivity()
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_login)
+        
+        // Se a instância do auth não foi inicializada no onStart, inicializa aqui
+        if (!::auth.isInitialized) {
+            auth = FirebaseAuth.getInstance()
+        }
+
+        val emailEditText: EditText = findViewById(R.id.editTextEmail)
+        val passwordEditText: EditText = findViewById(R.id.editTextPassword)
+        val loginButton: Button = findViewById(R.id.buttonLogin)
+
+        loginButton.setOnClickListener {
+            val email = emailEditText.text.toString().trim()
+            val password = passwordEditText.text.toString().trim()
+
+            if (email.isEmpty() || password.isEmpty()) {
+                Toast.makeText(this, "Por favor, preencha todos os campos.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            auth.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this) { task ->
+                    if (task.isSuccessful) {
+                        goToMainActivity()
+                    } else {
+                        Toast.makeText(this, "Falha na autenticação.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+        }
+    }
+    
+    private fun goToMainActivity() {
+        val intent = Intent(this, MainActivity::class.java)
+        startActivity(intent)
+        finish()
+    }
+}

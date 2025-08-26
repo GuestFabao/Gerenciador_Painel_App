@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "780781498415",
+    "project_id": "app-painel-gerenciador",
+    "storage_bucket": "app-painel-gerenciador.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:780781498415:android:86b8f27b6bccbc457716da",
+        "android_client_info": {
+          "package_name": "com.fabio.gerenciadoriptv"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBmi9L_swTZ_s-oCi-rFGkHHRZW2ZmMMww"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
