@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="8dp">
+
+    <TextView
+        android:id="@+id/option_confirm_payment"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Confirmar Pagamento e Renovar"
+        android:padding="16dp"
+        android:textSize="16sp"
+        android:gravity="center_vertical"
+        android:drawableStart="@drawable/ic_check_circle"
+        android:drawablePadding="16dp"
+        android:background="?attr/selectableItemBackground"/>
+
+    <TextView
+        android:id="@+id/option_edit"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Editar Dados"
+        android:padding="16dp"
+        android:textSize="16sp"
+        android:gravity="center_vertical"
+        android:drawableStart="@drawable/ic_edit"
+        android:drawablePadding="16dp"
+        android:background="?attr/selectableItemBackground"/>
+
+    <TextView
+        android:id="@+id/option_delete"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Excluir Cliente"
+        android:padding="16dp"
+        android:textSize="16sp"
+        android:gravity="center_vertical"
+        android:textColor="@color/colorAtrasado"
+        android:drawableStart="@drawable/ic_delete"
+        android:drawablePadding="16dp"
+        android:background="?attr/selectableItemBackground"/>
+
+</LinearLayout>

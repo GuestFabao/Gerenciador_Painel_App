@@ -1,5 +1,6 @@
 package com.fabio.gerenciadoriptv
 
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
@@ -214,18 +215,35 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showClientOptionsDialog(cliente: Cliente) {
-        val options = arrayOf("Confirmar Pagamento e Renovar", "Editar Dados", "Excluir Cliente")
-        AlertDialog.Builder(this)
-            .setTitle(cliente.nome)
-            .setItems(options) { _, which ->
-                when (which) {
-                    0 -> confirmPaymentAndUpdateDueDate(cliente)
-                    1 -> showEditClientDialog(cliente)
-                    2 -> deleteClient(cliente)
-                }
-            }
-            .setNegativeButton("Cancelar", null)
-            .show()
+        // Cria o BottomSheetDialog
+        val dialog = BottomSheetDialog(this)
+        // Infla nosso novo layout
+        val view = layoutInflater.inflate(R.layout.bottom_sheet_options, null)
+        dialog.setContentView(view)
+
+        // Pega a referência de cada opção no layout
+        val optionConfirm = view.findViewById<TextView>(R.id.option_confirm_payment)
+        val optionEdit = view.findViewById<TextView>(R.id.option_edit)
+        val optionDelete = view.findViewById<TextView>(R.id.option_delete)
+
+        // Define o que cada opção faz ao ser clicada
+        optionConfirm.setOnClickListener {
+            confirmPaymentAndUpdateDueDate(cliente)
+            dialog.dismiss() // Fecha o painel
+        }
+
+        optionEdit.setOnClickListener {
+            showEditClientDialog(cliente)
+            dialog.dismiss()
+        }
+
+        optionDelete.setOnClickListener {
+            deleteClient(cliente)
+            dialog.dismiss()
+        }
+
+        // Mostra o painel
+        dialog.show()
     }
 
     private fun showAddCreditsDialog() {
