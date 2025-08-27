@@ -33,7 +33,6 @@ class MainActivity : AppCompatActivity() {
     private val clientesCollectionRef = db.collection("clientes")
     private val contabilidadeRef = db.collection("contabilidade")
     private lateinit var auth: FirebaseAuth
-
     private lateinit var textViewTotalClients: TextView
     private lateinit var textViewTotalReceived: TextView
     private lateinit var textViewTotalPending: TextView
@@ -43,8 +42,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var progressBar: ProgressBar
     private lateinit var textViewEmptyList: TextView
-
     private var fullClientList = listOf<Cliente>()
+    private var creditCost = 10.0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,23 +70,17 @@ class MainActivity : AppCompatActivity() {
         val fab: FloatingActionButton = findViewById(R.id.fabAddClient)
 
         recyclerView.layoutManager = LinearLayoutManager(this)
-        clientesAdapter = ClientesAdapter { cliente ->
-            showClientOptionsDialog(cliente)
-        }
+        clientesAdapter = ClientesAdapter { cliente -> showClientOptionsDialog(cliente) }
         recyclerView.adapter = clientesAdapter
 
         fetchData()
 
-        fab.setOnClickListener {
-            showAddClientDialog()
-        }
+        fab.setOnClickListener { showAddClientDialog() }
 
         searchEditText.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: Editable?) {
-                filter(s.toString())
-            }
+            override fun afterTextChanged(s: Editable?) { filter(s.toString()) }
         })
     }
 
@@ -109,21 +102,46 @@ class MainActivity : AppCompatActivity() {
                 showAddCreditsDialog()
                 true
             }
+            R.id.action_settings -> {
+                startActivity(Intent(this, SettingsActivity::class.java))
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }
 
     private fun fetchData() {
-        progressBar.visibility = View.VISIBLE
-        recyclerView.visibility = View.GONE
-        textViewEmptyList.visibility = View.GONE
+        listenForCreditBalance()
+        loadSettingsAndThenClients()
+    }
 
+    private fun listenForCreditBalance() {
         contabilidadeRef.document("saldoCreditos").addSnapshotListener { snapshot, error ->
             if (error != null) { Log.w("Firebase", "Erro ao buscar saldo de créditos.", error); return@addSnapshotListener }
             val saldo = snapshot?.getDouble("saldo")?.toInt() ?: 0
             textViewCredits.text = saldo.toString()
         }
+    }
 
+    private fun loadSettingsAndThenClients() {
+        progressBar.visibility = View.VISIBLE
+        recyclerView.visibility = View.GONE
+        textViewEmptyList.visibility = View.GONE
+
+        db.collection("configuracoes").document("precos").get()
+            .addOnSuccessListener { document ->
+                if (document != null && document.exists()) {
+                    creditCost = document.getDouble("custoCredito") ?: 10.0
+                }
+                listenForClients()
+            }
+            .addOnFailureListener {
+                Log.w("Firebase", "Erro ao buscar configurações. Usando custo padrão.", it)
+                listenForClients()
+            }
+    }
+
+    private fun listenForClients() {
         clientesCollectionRef.orderBy("nome").addSnapshotListener { snapshot, error ->
             progressBar.visibility = View.GONE
             if (error != null) {
@@ -186,7 +204,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        val custoTotal = clientesPagosCount * 10.0
+        val custoTotal = clientesPagosCount * creditCost
         val lucro = totalReceived - custoTotal
 
         textViewTotalClients.text = totalClients.toString()
@@ -213,7 +231,6 @@ class MainActivity : AppCompatActivity() {
     private fun showAddCreditsDialog() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_add_credits, null)
         val amountEditText = dialogView.findViewById<EditText>(R.id.editTextCreditsAmount)
-
         AlertDialog.Builder(this)
             .setTitle("Adicionar Créditos")
             .setView(dialogView)

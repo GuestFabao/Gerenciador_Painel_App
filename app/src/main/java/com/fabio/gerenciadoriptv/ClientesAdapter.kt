@@ -1,6 +1,5 @@
 package com.fabio.gerenciadoriptv
 
-import android.util.Log // <-- IMPORT ADICIONADO AQUI
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -46,28 +45,16 @@ class ClientesAdapter(private val onClientClicked: (Cliente) -> Unit) : Recycler
             }
         }
 
-        // --- LÓGICA DE STATUS E CORES ---
         val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val hoje = Calendar.getInstance()
-        // Zera a hora, minuto e segundo para comparar apenas a data
-        hoje.set(Calendar.HOUR_OF_DAY, 0)
-        hoje.set(Calendar.MINUTE, 0)
-        hoje.set(Calendar.SECOND, 0)
-        hoje.set(Calendar.MILLISECOND, 0)
+        hoje.set(Calendar.HOUR_OF_DAY, 0); hoje.set(Calendar.MINUTE, 0); hoje.set(Calendar.SECOND, 0); hoje.set(Calendar.MILLISECOND, 0)
 
-        val dataVencimento = try {
-            sdf.parse(cliente.vencimento)
-        } catch (e: Exception) {
-            null
-        }
+        val dataVencimento = try { sdf.parse(cliente.vencimento) } catch (e: Exception) { null }
 
         var statusFinal = cliente.status
         if (dataVencimento != null && dataVencimento.before(hoje.time) && cliente.status != "Pago") {
             statusFinal = "Atrasado"
         }
-
-        // --- LINHA DE TESTE ADICIONADA AQUI ---
-        Log.d("AdapterDebug", "Cliente: ${cliente.nome} | Status Lido: ${cliente.status} | Status Final Calculado: $statusFinal")
 
         holder.statusTextView.text = statusFinal
 

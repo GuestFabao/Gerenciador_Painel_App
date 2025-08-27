@@ -1,10 +1,10 @@
 package com.fabio.gerenciadoriptv
 
-import android.content.Intent // <-- ESTE IMPORT ESTAVA FALTANDO
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
-import android.widget.Toast // <-- ESTE IMPORT ESTAVA FALTANDO
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.firebase.auth.FirebaseAuth
 
@@ -14,12 +14,9 @@ class LoginActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-        // Inicializa o auth aqui para evitar erro na primeira execução
         auth = FirebaseAuth.getInstance()
-        // Verifica se o usuário já está logado
         val currentUser = auth.currentUser
         if (currentUser != null) {
-            // Se sim, vai direto para a MainActivity
             goToMainActivity()
         }
     }
@@ -27,8 +24,7 @@ class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
-        
-        // Se a instância do auth não foi inicializada no onStart, inicializa aqui
+
         if (!::auth.isInitialized) {
             auth = FirebaseAuth.getInstance()
         }
@@ -56,7 +52,7 @@ class LoginActivity : AppCompatActivity() {
                 }
         }
     }
-    
+
     private fun goToMainActivity() {
         val intent = Intent(this, MainActivity::class.java)
         startActivity(intent)
