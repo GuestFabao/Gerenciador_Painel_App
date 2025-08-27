@@ -6,5 +6,9 @@
         android:id="@+id/action_logout"
         android:title="Sair (Logout)"
         app:showAsAction="never" />
+    <item
+        android:id="@+id/action_add_credits"
+        android:title="Adicionar Créditos"
+        app:showAsAction="never" />
 
 </menu>

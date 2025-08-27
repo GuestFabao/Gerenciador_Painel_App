@@ -20,6 +20,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.firestore
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -30,12 +31,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var clientesAdapter: ClientesAdapter
     private val db = Firebase.firestore
     private val clientesCollectionRef = db.collection("clientes")
+    private val contabilidadeRef = db.collection("contabilidade")
     private lateinit var auth: FirebaseAuth
 
-    // Componentes da UI
     private lateinit var textViewTotalClients: TextView
     private lateinit var textViewTotalReceived: TextView
     private lateinit var textViewTotalPending: TextView
+    private lateinit var textViewCredits: TextView
+    private lateinit var textViewProfit: TextView
     private lateinit var searchEditText: EditText
     private lateinit var recyclerView: RecyclerView
     private lateinit var progressBar: ProgressBar
@@ -56,24 +59,24 @@ class MainActivity : AppCompatActivity() {
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
 
-        // Inicialização de todos os componentes
         textViewTotalClients = findViewById(R.id.textViewTotalClients)
         textViewTotalReceived = findViewById(R.id.textViewTotalReceived)
         textViewTotalPending = findViewById(R.id.textViewTotalPending)
+        textViewCredits = findViewById(R.id.textViewCredits)
+        textViewProfit = findViewById(R.id.textViewProfit)
         searchEditText = findViewById(R.id.searchEditText)
         recyclerView = findViewById(R.id.recyclerViewClients)
         progressBar = findViewById(R.id.progressBar)
         textViewEmptyList = findViewById(R.id.textViewEmptyList)
         val fab: FloatingActionButton = findViewById(R.id.fabAddClient)
 
-        // Configuração do RecyclerView
         recyclerView.layoutManager = LinearLayoutManager(this)
         clientesAdapter = ClientesAdapter { cliente ->
             showClientOptionsDialog(cliente)
         }
         recyclerView.adapter = clientesAdapter
 
-        fetchClients()
+        fetchData()
 
         fab.setOnClickListener {
             showAddClientDialog()
@@ -102,7 +105,47 @@ class MainActivity : AppCompatActivity() {
                 finish()
                 true
             }
+            R.id.action_add_credits -> {
+                showAddCreditsDialog()
+                true
+            }
             else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    private fun fetchData() {
+        progressBar.visibility = View.VISIBLE
+        recyclerView.visibility = View.GONE
+        textViewEmptyList.visibility = View.GONE
+
+        contabilidadeRef.document("saldoCreditos").addSnapshotListener { snapshot, error ->
+            if (error != null) { Log.w("Firebase", "Erro ao buscar saldo de créditos.", error); return@addSnapshotListener }
+            val saldo = snapshot?.getDouble("saldo")?.toInt() ?: 0
+            textViewCredits.text = saldo.toString()
+        }
+
+        clientesCollectionRef.orderBy("nome").addSnapshotListener { snapshot, error ->
+            progressBar.visibility = View.GONE
+            if (error != null) {
+                Log.w("Firebase", "Erro ao buscar clientes.", error)
+                textViewEmptyList.text = "Erro ao carregar dados."
+                textViewEmptyList.visibility = View.VISIBLE
+                return@addSnapshotListener
+            }
+            if (snapshot != null) {
+                val clientes = snapshot.toObjects(Cliente::class.java)
+                fullClientList = clientes
+
+                if (clientes.isEmpty()) {
+                    recyclerView.visibility = View.GONE
+                    textViewEmptyList.visibility = View.VISIBLE
+                } else {
+                    recyclerView.visibility = View.VISIBLE
+                    textViewEmptyList.visibility = View.GONE
+                }
+                filter(searchEditText.text.toString())
+                updateDashboard(clientes)
+            }
         }
     }
 
@@ -120,49 +163,15 @@ class MainActivity : AppCompatActivity() {
         clientesAdapter.submitList(filteredList)
     }
 
-    private fun fetchClients() {
-        progressBar.visibility = View.VISIBLE
-        recyclerView.visibility = View.GONE
-        textViewEmptyList.visibility = View.GONE
-
-        clientesCollectionRef
-            .orderBy("nome")
-            .addSnapshotListener { snapshot, error ->
-                progressBar.visibility = View.GONE
-
-                if (error != null) {
-                    Log.w("Firebase", "Erro ao buscar clientes.", error)
-                    textViewEmptyList.text = "Erro ao carregar dados."
-                    textViewEmptyList.visibility = View.VISIBLE
-                    return@addSnapshotListener
-                }
-
-                if (snapshot != null) {
-                    val clientes = snapshot.toObjects(Cliente::class.java)
-                    fullClientList = clientes
-
-                    if (clientes.isEmpty()) {
-                        recyclerView.visibility = View.GONE
-                        textViewEmptyList.visibility = View.VISIBLE
-                    } else {
-                        recyclerView.visibility = View.VISIBLE
-                        textViewEmptyList.visibility = View.GONE
-                    }
-
-                    filter(searchEditText.text.toString())
-                    updateDashboard(clientes)
-                }
-            }
-    }
-
     private fun updateDashboard(clientes: List<Cliente>) {
         val totalClients = clientes.size
         var totalReceived = 0.0
         var totalPending = 0.0
-        val hoje = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
-        }
+        var clientesPagosCount = 0
+
+        val hoje = Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }
         val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+
         for (cliente in clientes) {
             val dataVencimento = try { sdf.parse(cliente.vencimento) } catch (e: Exception) { null }
             var statusFinal = cliente.status
@@ -171,13 +180,19 @@ class MainActivity : AppCompatActivity() {
             }
             if (statusFinal == "Pago") {
                 totalReceived += cliente.valor
+                clientesPagosCount++
             } else {
                 totalPending += cliente.valor
             }
         }
+
+        val custoTotal = clientesPagosCount * 10.0
+        val lucro = totalReceived - custoTotal
+
         textViewTotalClients.text = totalClients.toString()
         textViewTotalReceived.text = String.format(Locale.getDefault(), "R$ %.2f", totalReceived)
         textViewTotalPending.text = String.format(Locale.getDefault(), "R$ %.2f", totalPending)
+        textViewProfit.text = String.format(Locale.getDefault(), "R$ %.2f", lucro)
     }
 
     private fun showClientOptionsDialog(cliente: Cliente) {
@@ -193,6 +208,60 @@ class MainActivity : AppCompatActivity() {
             }
             .setNegativeButton("Cancelar", null)
             .show()
+    }
+
+    private fun showAddCreditsDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_add_credits, null)
+        val amountEditText = dialogView.findViewById<EditText>(R.id.editTextCreditsAmount)
+
+        AlertDialog.Builder(this)
+            .setTitle("Adicionar Créditos")
+            .setView(dialogView)
+            .setPositiveButton("Adicionar") { _, _ ->
+                val amount = amountEditText.text.toString().toLongOrNull()
+                if (amount != null && amount > 0) {
+                    val saldoCreditosRef = contabilidadeRef.document("saldoCreditos")
+                    saldoCreditosRef.update("saldo", FieldValue.increment(amount.toDouble()))
+                        .addOnSuccessListener {
+                            Toast.makeText(this, "$amount créditos adicionados!", Toast.LENGTH_SHORT).show()
+                            db.collection("comprasCredito").add(mapOf("quantidade" to amount, "data" to Calendar.getInstance().time))
+                        }
+                        .addOnFailureListener {
+                            saldoCreditosRef.set(mapOf("saldo" to amount))
+                        }
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun confirmPaymentAndUpdateDueDate(cliente: Cliente) {
+        val saldoCreditosRef = contabilidadeRef.document("saldoCreditos")
+        db.runTransaction { transaction ->
+            val saldoDoc = transaction.get(saldoCreditosRef)
+            val saldoAtual = saldoDoc.getDouble("saldo")?.toInt() ?: 0
+            if (saldoAtual <= 0) {
+                throw Exception("Saldo de créditos insuficiente!")
+            }
+            transaction.update(saldoCreditosRef, "saldo", FieldValue.increment(-1.0))
+
+            val calendar = Calendar.getInstance()
+            when (cliente.plano.lowercase(Locale.ROOT).trim()) {
+                "mensal" -> calendar.add(Calendar.MONTH, 1)
+                "trimestral" -> calendar.add(Calendar.MONTH, 3)
+                else -> throw Exception("Plano '${cliente.plano}' não reconhecido.")
+            }
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val novaDataVencimento = dateFormat.format(calendar.time)
+
+            val clienteRef = clientesCollectionRef.document(cliente.id!!)
+            transaction.update(clienteRef, mapOf("status" to "Pago", "vencimento" to novaDataVencimento))
+            null
+        }.addOnSuccessListener {
+            Toast.makeText(this, "${cliente.nome} renovado! 1 crédito utilizado.", Toast.LENGTH_SHORT).show()
+        }.addOnFailureListener { e ->
+            Toast.makeText(this, "Falha na renovação: ${e.message}", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun showEditClientDialog(cliente: Cliente) {
@@ -223,25 +292,6 @@ class MainActivity : AppCompatActivity() {
             }
             .setNegativeButton("Cancelar", null)
             .show()
-    }
-
-    private fun confirmPaymentAndUpdateDueDate(cliente: Cliente) {
-        val calendar = Calendar.getInstance()
-        when (cliente.plano.lowercase(Locale.ROOT).trim()) {
-            "mensal" -> calendar.add(Calendar.MONTH, 1)
-            "trimestral" -> calendar.add(Calendar.MONTH, 3)
-            else -> {
-                Toast.makeText(this, "Plano '${cliente.plano}' não reconhecido.", Toast.LENGTH_LONG).show()
-                return
-            }
-        }
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        val novaDataVencimento = dateFormat.format(calendar.time)
-        cliente.id?.let { clientId ->
-            clientesCollectionRef.document(clientId)
-                .update(mapOf("status" to "Pago", "vencimento" to novaDataVencimento))
-                .addOnSuccessListener { Toast.makeText(this, "${cliente.nome} renovado com sucesso!", Toast.LENGTH_SHORT).show() }
-        }
     }
 
     private fun deleteClient(cliente: Cliente) {
