@@ -1,6 +1,6 @@
 package com.fabio.gerenciadoriptv
 
-import androidx.appcompat.app.AppCompatDelegate
+import android.app.DatePickerDialog // <-- O IMPORT QUE FALTAVA
 import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
@@ -37,7 +37,6 @@ class MainActivity : AppCompatActivity() {
     private val clientesCollectionRef = db.collection("clientes")
     private val contabilidadeRef = db.collection("contabilidade")
     private lateinit var auth: FirebaseAuth
-
     private lateinit var textViewTotalClients: TextView
     private lateinit var textViewTotalReceived: TextView
     private lateinit var textViewTotalPending: TextView
@@ -47,7 +46,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var progressBar: ProgressBar
     private lateinit var textViewEmptyList: TextView
-
     private var fullClientList = listOf<Cliente>()
     private var creditCost = 10.0
     private var monthlyPrice = 30.0
@@ -283,7 +281,20 @@ class MainActivity : AppCompatActivity() {
 
     private fun showAddClientDialog() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_add_client, null)
+        val dueDateEditText = dialogView.findViewById<EditText>(R.id.editTextDueDate)
         setupPlanAndValueLogic(dialogView)
+
+        dueDateEditText.setOnClickListener {
+            val calendar = Calendar.getInstance()
+            val year = calendar.get(Calendar.YEAR)
+            val month = calendar.get(Calendar.MONTH)
+            val day = calendar.get(Calendar.DAY_OF_MONTH)
+
+            DatePickerDialog(this, { _, selectedYear, selectedMonth, selectedDay ->
+                val formattedDate = String.format("%d-%02d-%02d", selectedYear, selectedMonth + 1, selectedDay)
+                dueDateEditText.setText(formattedDate)
+            }, year, month, day).show()
+        }
 
         AlertDialog.Builder(this)
             .setTitle("Adicionar Novo Cliente")
@@ -292,11 +303,13 @@ class MainActivity : AppCompatActivity() {
                 val name = dialogView.findViewById<EditText>(R.id.editTextClientName).text.toString()
                 val plan = dialogView.findViewById<AutoCompleteTextView>(R.id.autoCompletePlan).text.toString()
                 val value = dialogView.findViewById<EditText>(R.id.editTextValue).text.toString().toDoubleOrNull() ?: 0.0
-                val dueDate = dialogView.findViewById<EditText>(R.id.editTextDueDate).text.toString()
-                if (name.isNotBlank()) {
+                val dueDate = dueDateEditText.text.toString()
+                if (name.isNotBlank() && dueDate.isNotBlank()) {
                     val newClient = Cliente(nome = name, plano = plan, valor = value, vencimento = dueDate, status = "Pendente")
                     clientesCollectionRef.add(newClient)
                         .addOnSuccessListener { Toast.makeText(this, "$name adicionado.", Toast.LENGTH_SHORT).show() }
+                } else {
+                    Toast.makeText(this, "Nome e Data são obrigatórios.", Toast.LENGTH_SHORT).show()
                 }
             }
             .setNegativeButton("Cancelar", null)
@@ -315,6 +328,17 @@ class MainActivity : AppCompatActivity() {
 
         setupPlanAndValueLogic(dialogView, cliente)
 
+        dueDateEditText.setOnClickListener {
+            val calendar = Calendar.getInstance()
+            val year = calendar.get(Calendar.YEAR)
+            val month = calendar.get(Calendar.MONTH)
+            val day = calendar.get(Calendar.DAY_OF_MONTH)
+            DatePickerDialog(this, { _, y, m, d ->
+                val formattedDate = String.format("%d-%02d-%02d", y, m + 1, d)
+                dueDateEditText.setText(formattedDate)
+            }, year, month, day).show()
+        }
+
         AlertDialog.Builder(this)
             .setTitle("Editar Cliente")
             .setView(dialogView)
@@ -323,7 +347,7 @@ class MainActivity : AppCompatActivity() {
                 val newPlan = dialogView.findViewById<AutoCompleteTextView>(R.id.autoCompletePlan).text.toString()
                 val newValue = valueEditText.text.toString().toDoubleOrNull() ?: 0.0
                 val newDueDate = dueDateEditText.text.toString()
-                if (newName.isNotBlank()) {
+                if (newName.isNotBlank() && newDueDate.isNotBlank()) {
                     val updatedData = mapOf("nome" to newName, "plano" to newPlan, "valor" to newValue, "vencimento" to newDueDate)
                     cliente.id?.let {
                         clientesCollectionRef.document(it).update(updatedData)
