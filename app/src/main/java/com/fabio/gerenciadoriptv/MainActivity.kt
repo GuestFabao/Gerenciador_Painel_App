@@ -1,6 +1,5 @@
 package com.fabio.gerenciadoriptv
 
-import com.google.android.material.bottomsheet.BottomSheetDialog
 import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
@@ -9,6 +8,8 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.widget.ArrayAdapter
+import android.widget.AutoCompleteTextView
 import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -18,6 +19,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
@@ -34,6 +36,7 @@ class MainActivity : AppCompatActivity() {
     private val clientesCollectionRef = db.collection("clientes")
     private val contabilidadeRef = db.collection("contabilidade")
     private lateinit var auth: FirebaseAuth
+
     private lateinit var textViewTotalClients: TextView
     private lateinit var textViewTotalReceived: TextView
     private lateinit var textViewTotalPending: TextView
@@ -43,8 +46,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var progressBar: ProgressBar
     private lateinit var textViewEmptyList: TextView
+
     private var fullClientList = listOf<Cliente>()
     private var creditCost = 10.0
+    private var monthlyPrice = 30.0
+    private var quarterlyPrice = 90.0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -133,11 +139,13 @@ class MainActivity : AppCompatActivity() {
             .addOnSuccessListener { document ->
                 if (document != null && document.exists()) {
                     creditCost = document.getDouble("custoCredito") ?: 10.0
+                    monthlyPrice = document.getDouble("planoMensal") ?: 30.0
+                    quarterlyPrice = document.getDouble("planoTrimestral") ?: 90.0
                 }
                 listenForClients()
             }
             .addOnFailureListener {
-                Log.w("Firebase", "Erro ao buscar configurações. Usando custo padrão.", it)
+                Log.w("Firebase", "Erro ao buscar configurações. Usando valores padrão.", it)
                 listenForClients()
             }
     }
@@ -215,55 +223,111 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showClientOptionsDialog(cliente: Cliente) {
-        // Cria o BottomSheetDialog
         val dialog = BottomSheetDialog(this)
-        // Infla nosso novo layout
         val view = layoutInflater.inflate(R.layout.bottom_sheet_options, null)
         dialog.setContentView(view)
 
-        // Pega a referência de cada opção no layout
         val optionConfirm = view.findViewById<TextView>(R.id.option_confirm_payment)
         val optionEdit = view.findViewById<TextView>(R.id.option_edit)
         val optionDelete = view.findViewById<TextView>(R.id.option_delete)
+        val optionMarkUnpaid = view.findViewById<TextView>(R.id.option_mark_unpaid)
 
-        // Define o que cada opção faz ao ser clicada
-        optionConfirm.setOnClickListener {
-            confirmPaymentAndUpdateDueDate(cliente)
-            dialog.dismiss() // Fecha o painel
+        if (cliente.status == "Pago") {
+            optionMarkUnpaid.visibility = View.VISIBLE
+            optionConfirm.visibility = View.GONE
+        } else {
+            optionMarkUnpaid.visibility = View.GONE
+            optionConfirm.visibility = View.VISIBLE
         }
 
-        optionEdit.setOnClickListener {
-            showEditClientDialog(cliente)
-            dialog.dismiss()
-        }
+        optionConfirm.setOnClickListener { confirmPaymentAndUpdateDueDate(cliente); dialog.dismiss() }
+        optionEdit.setOnClickListener { showEditClientDialog(cliente); dialog.dismiss() }
+        optionDelete.setOnClickListener { deleteClient(cliente); dialog.dismiss() }
+        optionMarkUnpaid.setOnClickListener { markAsUnpaid(cliente); dialog.dismiss() }
 
-        optionDelete.setOnClickListener {
-            deleteClient(cliente)
-            dialog.dismiss()
-        }
-
-        // Mostra o painel
         dialog.show()
     }
 
-    private fun showAddCreditsDialog() {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_add_credits, null)
-        val amountEditText = dialogView.findViewById<EditText>(R.id.editTextCreditsAmount)
+    private fun markAsUnpaid(cliente: Cliente) {
+        cliente.id?.let { clientId ->
+            clientesCollectionRef.document(clientId)
+                .update("status", "Pendente")
+                .addOnSuccessListener {
+                    Toast.makeText(this, "${cliente.nome} marcado como Pendente.", Toast.LENGTH_SHORT).show()
+                }
+        }
+    }
+
+    private fun setupPlanAndValueLogic(dialogView: View, cliente: Cliente? = null) {
+        val planAutoComplete: AutoCompleteTextView = dialogView.findViewById(R.id.autoCompletePlan)
+        val valueEditText = dialogView.findViewById<EditText>(R.id.editTextValue)
+
+        val plans = arrayOf("Mensal", "Trimestral")
+        val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, plans)
+        planAutoComplete.setAdapter(adapter)
+
+        cliente?.let {
+            planAutoComplete.setText(it.plano, false)
+        }
+
+        planAutoComplete.setOnItemClickListener { _, _, position, _ ->
+            val selectedPlan = plans[position]
+            if (selectedPlan == "Mensal") {
+                valueEditText.setText(monthlyPrice.toString())
+            } else if (selectedPlan == "Trimestral") {
+                valueEditText.setText(quarterlyPrice.toString())
+            }
+        }
+    }
+
+    private fun showAddClientDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_add_client, null)
+        setupPlanAndValueLogic(dialogView)
+
         AlertDialog.Builder(this)
-            .setTitle("Adicionar Créditos")
+            .setTitle("Adicionar Novo Cliente")
             .setView(dialogView)
-            .setPositiveButton("Adicionar") { _, _ ->
-                val amount = amountEditText.text.toString().toLongOrNull()
-                if (amount != null && amount > 0) {
-                    val saldoCreditosRef = contabilidadeRef.document("saldoCreditos")
-                    saldoCreditosRef.update("saldo", FieldValue.increment(amount.toDouble()))
-                        .addOnSuccessListener {
-                            Toast.makeText(this, "$amount créditos adicionados!", Toast.LENGTH_SHORT).show()
-                            db.collection("comprasCredito").add(mapOf("quantidade" to amount, "data" to Calendar.getInstance().time))
-                        }
-                        .addOnFailureListener {
-                            saldoCreditosRef.set(mapOf("saldo" to amount))
-                        }
+            .setPositiveButton("Salvar") { _, _ ->
+                val name = dialogView.findViewById<EditText>(R.id.editTextClientName).text.toString()
+                val plan = dialogView.findViewById<AutoCompleteTextView>(R.id.autoCompletePlan).text.toString()
+                val value = dialogView.findViewById<EditText>(R.id.editTextValue).text.toString().toDoubleOrNull() ?: 0.0
+                val dueDate = dialogView.findViewById<EditText>(R.id.editTextDueDate).text.toString()
+                if (name.isNotBlank()) {
+                    val newClient = Cliente(nome = name, plano = plan, valor = value, vencimento = dueDate, status = "Pendente")
+                    clientesCollectionRef.add(newClient)
+                        .addOnSuccessListener { Toast.makeText(this, "$name adicionado.", Toast.LENGTH_SHORT).show() }
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun showEditClientDialog(cliente: Cliente) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_add_client, null)
+        val nameEditText = dialogView.findViewById<EditText>(R.id.editTextClientName)
+        val valueEditText = dialogView.findViewById<EditText>(R.id.editTextValue)
+        val dueDateEditText = dialogView.findViewById<EditText>(R.id.editTextDueDate)
+
+        nameEditText.setText(cliente.nome)
+        valueEditText.setText(cliente.valor.toString())
+        dueDateEditText.setText(cliente.vencimento)
+
+        setupPlanAndValueLogic(dialogView, cliente)
+
+        AlertDialog.Builder(this)
+            .setTitle("Editar Cliente")
+            .setView(dialogView)
+            .setPositiveButton("Salvar") { _, _ ->
+                val newName = nameEditText.text.toString()
+                val newPlan = dialogView.findViewById<AutoCompleteTextView>(R.id.autoCompletePlan).text.toString()
+                val newValue = valueEditText.text.toString().toDoubleOrNull() ?: 0.0
+                val newDueDate = dueDateEditText.text.toString()
+                if (newName.isNotBlank()) {
+                    val updatedData = mapOf("nome" to newName, "plano" to newPlan, "valor" to newValue, "vencimento" to newDueDate)
+                    cliente.id?.let {
+                        clientesCollectionRef.document(it).update(updatedData)
+                            .addOnSuccessListener { Toast.makeText(this, "Dados atualizados.", Toast.LENGTH_SHORT).show() }
+                    }
                 }
             }
             .setNegativeButton("Cancelar", null)
@@ -299,36 +363,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showEditClientDialog(cliente: Cliente) {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_add_client, null)
-        val nameEditText = dialogView.findViewById<EditText>(R.id.editTextClientName)
-        val planEditText = dialogView.findViewById<EditText>(R.id.editTextPlan)
-        val valueEditText = dialogView.findViewById<EditText>(R.id.editTextValue)
-        val dueDateEditText = dialogView.findViewById<EditText>(R.id.editTextDueDate)
-        nameEditText.setText(cliente.nome)
-        planEditText.setText(cliente.plano)
-        valueEditText.setText(cliente.valor.toString())
-        dueDateEditText.setText(cliente.vencimento)
-        AlertDialog.Builder(this)
-            .setTitle("Editar Cliente")
-            .setView(dialogView)
-            .setPositiveButton("Salvar") { _, _ ->
-                val newName = nameEditText.text.toString()
-                val newPlan = planEditText.text.toString()
-                val newValue = valueEditText.text.toString().toDoubleOrNull() ?: 0.0
-                val newDueDate = dueDateEditText.text.toString()
-                if (newName.isNotBlank()) {
-                    val updatedData = mapOf("nome" to newName, "plano" to newPlan, "valor" to newValue, "vencimento" to newDueDate)
-                    cliente.id?.let {
-                        clientesCollectionRef.document(it).update(updatedData)
-                            .addOnSuccessListener { Toast.makeText(this, "Dados de ${cliente.nome} atualizados.", Toast.LENGTH_SHORT).show() }
-                    }
-                }
-            }
-            .setNegativeButton("Cancelar", null)
-            .show()
-    }
-
     private fun deleteClient(cliente: Cliente) {
         AlertDialog.Builder(this)
             .setTitle("Excluir Cliente")
@@ -343,20 +377,24 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun showAddClientDialog() {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_add_client, null)
+    private fun showAddCreditsDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_add_credits, null)
+        val amountEditText = dialogView.findViewById<EditText>(R.id.editTextCreditsAmount)
         AlertDialog.Builder(this)
-            .setTitle("Adicionar Novo Cliente")
+            .setTitle("Adicionar Créditos")
             .setView(dialogView)
-            .setPositiveButton("Salvar") { _, _ ->
-                val name = dialogView.findViewById<EditText>(R.id.editTextClientName).text.toString()
-                val plan = dialogView.findViewById<EditText>(R.id.editTextPlan).text.toString()
-                val value = dialogView.findViewById<EditText>(R.id.editTextValue).text.toString().toDoubleOrNull() ?: 0.0
-                val dueDate = dialogView.findViewById<EditText>(R.id.editTextDueDate).text.toString()
-                if (name.isNotBlank()) {
-                    val newClient = Cliente(nome = name, plano = plan, valor = value, vencimento = dueDate, status = "Pendente")
-                    clientesCollectionRef.add(newClient)
-                        .addOnSuccessListener { Toast.makeText(this, "$name adicionado com sucesso.", Toast.LENGTH_SHORT).show() }
+            .setPositiveButton("Adicionar") { _, _ ->
+                val amount = amountEditText.text.toString().toLongOrNull()
+                if (amount != null && amount > 0) {
+                    val saldoCreditosRef = contabilidadeRef.document("saldoCreditos")
+                    saldoCreditosRef.update("saldo", FieldValue.increment(amount.toDouble()))
+                        .addOnSuccessListener {
+                            Toast.makeText(this, "$amount créditos adicionados!", Toast.LENGTH_SHORT).show()
+                            db.collection("comprasCredito").add(mapOf("quantidade" to amount, "data" to Calendar.getInstance().time))
+                        }
+                        .addOnFailureListener {
+                            saldoCreditosRef.set(mapOf("saldo" to amount))
+                        }
                 }
             }
             .setNegativeButton("Cancelar", null)

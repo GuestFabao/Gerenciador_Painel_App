@@ -13,20 +13,27 @@
         android:hint="Nome do Cliente"
         android:inputType="textPersonName" />
 
-    <EditText
-        android:id="@+id/editTextPlan"
+    <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:hint="Plano (Ex: Mensal)"
-        android:inputType="text" />
+        style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.ExposedDropdownMenu"
+        android:layout_marginTop="16dp">
+
+        <AutoCompleteTextView
+            android:id="@+id/autoCompletePlan"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="none"
+            android:hint="Plano"/>
+
+    </com.google.android.material.textfield.TextInputLayout>
 
     <EditText
         android:id="@+id/editTextValue"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:hint="Valor (Ex: 30)"
+        android:hint="Valor (R$)"
         android:inputType="numberDecimal" />
 
     <EditText
