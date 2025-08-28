@@ -1,6 +1,6 @@
 package com.fabio.gerenciadoriptv
 
-import android.app.DatePickerDialog // <-- O IMPORT QUE FALTAVA
+import android.app.DatePickerDialog
 import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
@@ -18,6 +18,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -37,6 +38,7 @@ class MainActivity : AppCompatActivity() {
     private val clientesCollectionRef = db.collection("clientes")
     private val contabilidadeRef = db.collection("contabilidade")
     private lateinit var auth: FirebaseAuth
+
     private lateinit var textViewTotalClients: TextView
     private lateinit var textViewTotalReceived: TextView
     private lateinit var textViewTotalPending: TextView
@@ -46,6 +48,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var progressBar: ProgressBar
     private lateinit var textViewEmptyList: TextView
+
     private var fullClientList = listOf<Cliente>()
     private var creditCost = 10.0
     private var monthlyPrice = 30.0
@@ -105,7 +108,8 @@ class MainActivity : AppCompatActivity() {
                 true
             }
             R.id.action_add_credits -> {
-                showAddCreditsDialog()
+                // ALTERAÇÃO AQUI: Abre a nova tela de Gestão de Créditos
+                startActivity(Intent(this, CreditsActivity::class.java))
                 true
             }
             R.id.action_settings -> {
@@ -231,6 +235,10 @@ class MainActivity : AppCompatActivity() {
         val optionDelete = view.findViewById<TextView>(R.id.option_delete)
         val optionMarkUnpaid = view.findViewById<TextView>(R.id.option_mark_unpaid)
 
+        val redColor = ContextCompat.getColor(this, R.color.colorAtrasado)
+        optionDelete.setTextColor(redColor)
+        optionDelete.compoundDrawablesRelative[0]?.setTint(redColor)
+
         if (cliente.status == "Pago") {
             optionMarkUnpaid.visibility = View.VISIBLE
             optionConfirm.visibility = View.GONE
@@ -286,14 +294,10 @@ class MainActivity : AppCompatActivity() {
 
         dueDateEditText.setOnClickListener {
             val calendar = Calendar.getInstance()
-            val year = calendar.get(Calendar.YEAR)
-            val month = calendar.get(Calendar.MONTH)
-            val day = calendar.get(Calendar.DAY_OF_MONTH)
-
-            DatePickerDialog(this, { _, selectedYear, selectedMonth, selectedDay ->
-                val formattedDate = String.format("%d-%02d-%02d", selectedYear, selectedMonth + 1, selectedDay)
+            DatePickerDialog(this, { _, year, month, day ->
+                val formattedDate = String.format("%d-%02d-%02d", year, month + 1, day)
                 dueDateEditText.setText(formattedDate)
-            }, year, month, day).show()
+            }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show()
         }
 
         AlertDialog.Builder(this)
@@ -330,13 +334,10 @@ class MainActivity : AppCompatActivity() {
 
         dueDateEditText.setOnClickListener {
             val calendar = Calendar.getInstance()
-            val year = calendar.get(Calendar.YEAR)
-            val month = calendar.get(Calendar.MONTH)
-            val day = calendar.get(Calendar.DAY_OF_MONTH)
             DatePickerDialog(this, { _, y, m, d ->
                 val formattedDate = String.format("%d-%02d-%02d", y, m + 1, d)
                 dueDateEditText.setText(formattedDate)
-            }, year, month, day).show()
+            }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show()
         }
 
         AlertDialog.Builder(this)
@@ -396,30 +397,6 @@ class MainActivity : AppCompatActivity() {
                 cliente.id?.let { clientId ->
                     clientesCollectionRef.document(clientId).delete()
                         .addOnSuccessListener { Toast.makeText(this, "${cliente.nome} excluído.", Toast.LENGTH_SHORT).show() }
-                }
-            }
-            .setNegativeButton("Cancelar", null)
-            .show()
-    }
-
-    private fun showAddCreditsDialog() {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_add_credits, null)
-        val amountEditText = dialogView.findViewById<EditText>(R.id.editTextCreditsAmount)
-        AlertDialog.Builder(this)
-            .setTitle("Adicionar Créditos")
-            .setView(dialogView)
-            .setPositiveButton("Adicionar") { _, _ ->
-                val amount = amountEditText.text.toString().toLongOrNull()
-                if (amount != null && amount > 0) {
-                    val saldoCreditosRef = contabilidadeRef.document("saldoCreditos")
-                    saldoCreditosRef.update("saldo", FieldValue.increment(amount.toDouble()))
-                        .addOnSuccessListener {
-                            Toast.makeText(this, "$amount créditos adicionados!", Toast.LENGTH_SHORT).show()
-                            db.collection("comprasCredito").add(mapOf("quantidade" to amount, "data" to Calendar.getInstance().time))
-                        }
-                        .addOnFailureListener {
-                            saldoCreditosRef.set(mapOf("saldo" to amount))
-                        }
                 }
             }
             .setNegativeButton("Cancelar", null)

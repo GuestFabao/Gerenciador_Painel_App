@@ -3,4 +3,4 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
-    <color name="colorPago">#4CAF50</color> <color name="colorPendente">#8A0081</color> <color name="colorAtrasado">#E4DCDA</color> </resources>
+    <color name="colorPago">#41CA45</color> <color name="colorPendente">#F0C403</color> <color name="colorAtrasado">#DC0B0B</color> </resources>
