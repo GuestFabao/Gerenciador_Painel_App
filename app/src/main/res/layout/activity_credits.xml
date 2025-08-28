@@ -72,31 +72,54 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="16dp">
-
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="8dp"
+        android:gravity="center_vertical">
         <EditText
             android:id="@+id/editTextQuantity"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:hint="Quantidade"
-            android:inputType="number" />
-
+            android:inputType="number"/>
         <Button
             android:id="@+id/buttonAddPurchase"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Adicionar" />
+            android:text="Adicionar"/>
     </LinearLayout>
 
-    <TextView
-        android:layout_width="wrap_content"
+    <RelativeLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"
-        android:text="Histórico de Compras"
-        android:textSize="16sp"
-        android:textStyle="bold" />
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:layout_marginTop="8dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Histórico de Compras"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:layout_centerVertical="true"
+            android:layout_alignParentStart="true"/>
+
+        <TextView
+            android:id="@+id/textViewDateFilter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Filtrar por Mês"
+            android:padding="8dp"
+            android:textColor="@color/white"
+            android:background="@drawable/status_background"
+            app:backgroundTint="@color/purple_200"
+            android:drawableEnd="@drawable/ic_date_range"
+            android:drawablePadding="8dp"
+            android:layout_centerVertical="true"
+            android:layout_alignParentEnd="true" />
+    </RelativeLayout>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerViewCreditHistory"

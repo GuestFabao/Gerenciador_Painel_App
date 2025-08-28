@@ -11,9 +11,15 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 class CreditHistoryAdapter(
-    private val history: List<Map<String, Any>>,
     private val onOptionClicked: (Map<String, Any>, View) -> Unit
 ) : RecyclerView.Adapter<CreditHistoryAdapter.ViewHolder>() {
+
+    private var history = listOf<Map<String, Any>>()
+
+    fun updateList(newList: List<Map<String, Any>>) {
+        history = newList
+        notifyDataSetChanged()
+    }
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val dateTextView: TextView = view.findViewById(R.id.textViewPurchaseDate)
