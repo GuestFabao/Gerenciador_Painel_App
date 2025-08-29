@@ -1,6 +1,5 @@
 package com.fabio.gerenciadoriptv
 
-import androidx.appcompat.app.AppCompatDelegate
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText

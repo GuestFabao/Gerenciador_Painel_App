@@ -31,19 +31,6 @@
         android:background="?attr/selectableItemBackground"/>
 
     <TextView
-        android:id="@+id/option_delete"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Excluir Cliente"
-        android:padding="16dp"
-        android:textSize="16sp"
-        android:gravity="center_vertical"
-        android:textColor="@color/colorAtrasado"
-        android:drawableStart="@drawable/ic_delete"
-        android:drawablePadding="16dp"
-        android:background="?attr/selectableItemBackground"/>
-
-    <TextView
         android:id="@+id/option_mark_unpaid"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -54,6 +41,19 @@
         android:drawableStart="@drawable/ic_undo"
         android:drawablePadding="16dp"
         android:visibility="gone"
+        android:background="?attr/selectableItemBackground"/>
+
+    <TextView
+        android:id="@+id/option_delete"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Excluir Cliente"
+        android:padding="16dp"
+        android:textSize="16sp"
+        android:gravity="center_vertical"
+        android:textColor="@color/colorAtrasado"
+        android:drawableStart="@drawable/ic_delete"
+        android:drawablePadding="16dp"
         android:background="?attr/selectableItemBackground"/>
 
 </LinearLayout>

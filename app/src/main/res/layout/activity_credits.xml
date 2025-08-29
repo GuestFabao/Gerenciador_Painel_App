@@ -11,7 +11,7 @@
         android:id="@+id/toolbar_credits"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="?attr/colorPrimary"
+        android:background="#9C27B0"
         android:elevation="4dp"
         android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
         app:title="Gestão de Créditos" />
@@ -114,7 +114,7 @@
             android:padding="8dp"
             android:textColor="@color/white"
             android:background="@drawable/status_background"
-            app:backgroundTint="@color/purple_200"
+            app:backgroundTint="#9C27B0"
             android:drawableEnd="@drawable/ic_date_range"
             android:drawablePadding="8dp"
             android:layout_centerVertical="true"

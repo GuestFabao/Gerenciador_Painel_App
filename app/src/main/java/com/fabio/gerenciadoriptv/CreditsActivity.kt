@@ -29,7 +29,6 @@ class CreditsActivity : AppCompatActivity() {
     private lateinit var textViewCreditBalance: TextView
     private lateinit var textViewPurchasedThisMonth: TextView
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_credits)
@@ -177,7 +176,7 @@ class CreditsActivity : AppCompatActivity() {
         val quantity = purchase["quantidade"] as Long
         db.collection("comprasCredito").document(id).delete()
             .addOnSuccessListener {
-                db.collection("contabilidade").document("saldoCreditos")
+                db.collection("contabilidade").document("saldoCredito")
                     .update("saldo", FieldValue.increment(-quantity.toDouble()))
                 Toast.makeText(this, "Compra excluída.", Toast.LENGTH_SHORT).show()
             }

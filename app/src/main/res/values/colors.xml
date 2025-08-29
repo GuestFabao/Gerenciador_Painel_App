@@ -2,7 +2,7 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="purple_200">#FFBB86FC</color> <color name="colorPago">#4CAF50</color>
-    <color name="colorPendente">#FF9800</color>
-    <color name="colorAtrasado">#F44336</color>
+    <color name="purple_200">#FFEB3B</color> <color name="colorPago">#4CAF50</color>
+    <color name="colorPendente">#E6582A</color>
+    <color name="colorAtrasado">#F61302</color>
 </resources>

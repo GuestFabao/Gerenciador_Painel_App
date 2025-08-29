@@ -108,7 +108,6 @@ class MainActivity : AppCompatActivity() {
                 true
             }
             R.id.action_add_credits -> {
-                // ALTERAÇÃO AQUI: Abre a nova tela de Gestão de Créditos
                 startActivity(Intent(this, CreditsActivity::class.java))
                 true
             }
@@ -305,11 +304,12 @@ class MainActivity : AppCompatActivity() {
             .setView(dialogView)
             .setPositiveButton("Salvar") { _, _ ->
                 val name = dialogView.findViewById<EditText>(R.id.editTextClientName).text.toString()
+                val obs = dialogView.findViewById<EditText>(R.id.editTextObs).text.toString()
                 val plan = dialogView.findViewById<AutoCompleteTextView>(R.id.autoCompletePlan).text.toString()
                 val value = dialogView.findViewById<EditText>(R.id.editTextValue).text.toString().toDoubleOrNull() ?: 0.0
                 val dueDate = dueDateEditText.text.toString()
                 if (name.isNotBlank() && dueDate.isNotBlank()) {
-                    val newClient = Cliente(nome = name, plano = plan, valor = value, vencimento = dueDate, status = "Pendente")
+                    val newClient = Cliente(nome = name, obs = obs, plano = plan, valor = value, vencimento = dueDate, status = "Pendente")
                     clientesCollectionRef.add(newClient)
                         .addOnSuccessListener { Toast.makeText(this, "$name adicionado.", Toast.LENGTH_SHORT).show() }
                 } else {
@@ -323,10 +323,12 @@ class MainActivity : AppCompatActivity() {
     private fun showEditClientDialog(cliente: Cliente) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_add_client, null)
         val nameEditText = dialogView.findViewById<EditText>(R.id.editTextClientName)
+        val obsEditText = dialogView.findViewById<EditText>(R.id.editTextObs)
         val valueEditText = dialogView.findViewById<EditText>(R.id.editTextValue)
         val dueDateEditText = dialogView.findViewById<EditText>(R.id.editTextDueDate)
 
         nameEditText.setText(cliente.nome)
+        obsEditText.setText(cliente.obs)
         valueEditText.setText(cliente.valor.toString())
         dueDateEditText.setText(cliente.vencimento)
 
@@ -345,11 +347,12 @@ class MainActivity : AppCompatActivity() {
             .setView(dialogView)
             .setPositiveButton("Salvar") { _, _ ->
                 val newName = nameEditText.text.toString()
+                val newObs = obsEditText.text.toString()
                 val newPlan = dialogView.findViewById<AutoCompleteTextView>(R.id.autoCompletePlan).text.toString()
                 val newValue = valueEditText.text.toString().toDoubleOrNull() ?: 0.0
                 val newDueDate = dueDateEditText.text.toString()
                 if (newName.isNotBlank() && newDueDate.isNotBlank()) {
-                    val updatedData = mapOf("nome" to newName, "plano" to newPlan, "valor" to newValue, "vencimento" to newDueDate)
+                    val updatedData = mapOf("nome" to newName, "obs" to newObs, "plano" to newPlan, "valor" to newValue, "vencimento" to newDueDate)
                     cliente.id?.let {
                         clientesCollectionRef.document(it).update(updatedData)
                             .addOnSuccessListener { Toast.makeText(this, "Dados atualizados.", Toast.LENGTH_SHORT).show() }
