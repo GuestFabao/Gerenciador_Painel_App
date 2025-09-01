@@ -34,7 +34,7 @@
             android:layout_marginTop="4dp"
             android:ellipsize="end"
             android:maxLines="1"
-            android:textStyle="normal"
+            android:textStyle="italic"
             app:layout_constraintTop_toBottomOf="@id/textViewClientName"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/textViewStatus"
