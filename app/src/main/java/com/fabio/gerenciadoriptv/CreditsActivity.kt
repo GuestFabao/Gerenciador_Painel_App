@@ -1,5 +1,6 @@
 package com.fabio.gerenciadoriptv
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import android.app.AlertDialog
 import android.app.DatePickerDialog
 import android.os.Bundle
@@ -148,7 +149,7 @@ class CreditsActivity : AppCompatActivity() {
         val oldQuantity = purchase["quantidade"] as Long
         amountEditText.setText(oldQuantity.toString())
 
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle("Editar Compra de Créditos")
             .setView(dialogView)
             .setPositiveButton("Salvar") { _, _ ->

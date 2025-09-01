@@ -1,5 +1,6 @@
 package com.fabio.gerenciadoriptv
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import android.Manifest
 import android.app.DatePickerDialog
 import android.content.Intent
@@ -326,7 +327,7 @@ class MainActivity : AppCompatActivity() {
             }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show()
         }
 
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle("Adicionar Novo Cliente")
             .setView(dialogView)
             .setPositiveButton("Salvar") { _, _ ->
@@ -369,7 +370,7 @@ class MainActivity : AppCompatActivity() {
             }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show()
         }
 
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle("Editar Cliente")
             .setView(dialogView)
             .setPositiveButton("Salvar") { _, _ ->
@@ -421,7 +422,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun deleteClient(cliente: Cliente, showConfirmation: Boolean = true) {
         if (showConfirmation) {
-            AlertDialog.Builder(this)
+            MaterialAlertDialogBuilder(this)
                 .setTitle("Excluir Cliente")
                 .setMessage("Tem certeza que deseja excluir ${cliente.nome} permanentemente?")
                 .setPositiveButton("Excluir") { _, _ ->

@@ -1,5 +1,6 @@
 package com.fabio.gerenciadoriptv
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
@@ -57,7 +58,7 @@ class SettingsActivity : AppCompatActivity() {
         val newPasswordEditText = dialogView.findViewById<EditText>(R.id.editTextNewPassword)
         val confirmPasswordEditText = dialogView.findViewById<EditText>(R.id.editTextConfirmPassword)
 
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle("Alterar Senha")
             .setView(dialogView)
             .setPositiveButton("Salvar") { _, _ ->
