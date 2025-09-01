@@ -29,6 +29,7 @@ class CreditsActivity : AppCompatActivity() {
     private lateinit var textViewCreditBalance: TextView
     private lateinit var textViewPurchasedThisMonth: TextView
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_credits)
@@ -85,6 +86,7 @@ class CreditsActivity : AppCompatActivity() {
     }
 
     private fun listenForData() {
+        // Listener para o histórico
         db.collection("comprasCredito")
             .orderBy("data", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, _ ->
@@ -97,24 +99,32 @@ class CreditsActivity : AppCompatActivity() {
                     fullHistoryList = historyList
                     adapter.updateList(fullHistoryList)
 
-                    val calendar = Calendar.getInstance()
-                    val currentMonth = calendar.get(Calendar.MONTH)
-                    val currentYear = calendar.get(Calendar.YEAR)
-
-                    val purchasedThisMonth = historyList.filter {
-                        val timestamp = it["data"] as com.google.firebase.Timestamp
-                        calendar.time = timestamp.toDate()
-                        calendar.get(Calendar.YEAR) == currentYear && calendar.get(Calendar.MONTH) == currentMonth
-                    }.sumOf { (it["quantidade"] as Long) }
-                    textViewPurchasedThisMonth.text = purchasedThisMonth.toString()
+                    // CHAMA A ATUALIZAÇÃO DO DASHBOARD AQUI
+                    updateDashboard(fullHistoryList)
                 }
             }
 
+        // Listener para o saldo
         db.collection("contabilidade").document("saldoCreditos")
             .addSnapshotListener { snapshot, _ ->
                 val saldo = snapshot?.getDouble("saldo")?.toInt() ?: 0
                 textViewCreditBalance.text = saldo.toString()
             }
+    }
+
+    // NOVA FUNÇÃO PARA ATUALIZAR OS CARDS
+    private fun updateDashboard(historyList: List<Map<String, Any>>) {
+        val calendar = Calendar.getInstance()
+        val currentMonth = calendar.get(Calendar.MONTH)
+        val currentYear = calendar.get(Calendar.YEAR)
+
+        val purchasedThisMonth = historyList.filter {
+            val timestamp = it["data"] as com.google.firebase.Timestamp
+            calendar.time = timestamp.toDate()
+            calendar.get(Calendar.YEAR) == currentYear && calendar.get(Calendar.MONTH) == currentMonth
+        }.sumOf { (it["quantidade"] as Long) }
+
+        textViewPurchasedThisMonth.text = purchasedThisMonth.toString()
     }
 
     private fun showPurchaseOptions(purchase: Map<String, Any>, view: View) {
@@ -176,7 +186,7 @@ class CreditsActivity : AppCompatActivity() {
         val quantity = purchase["quantidade"] as Long
         db.collection("comprasCredito").document(id).delete()
             .addOnSuccessListener {
-                db.collection("contabilidade").document("saldoCredito")
+                db.collection("contabilidade").document("saldoCreditos")
                     .update("saldo", FieldValue.increment(-quantity.toDouble()))
                 Toast.makeText(this, "Compra excluída.", Toast.LENGTH_SHORT).show()
             }

@@ -1,7 +1,10 @@
 package com.fabio.gerenciadoriptv
 
+import android.Manifest
 import android.app.DatePickerDialog
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -15,6 +18,7 @@ import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
@@ -38,7 +42,6 @@ class MainActivity : AppCompatActivity() {
     private val clientesCollectionRef = db.collection("clientes")
     private val contabilidadeRef = db.collection("contabilidade")
     private lateinit var auth: FirebaseAuth
-
     private lateinit var textViewTotalClients: TextView
     private lateinit var textViewTotalReceived: TextView
     private lateinit var textViewTotalPending: TextView
@@ -48,11 +51,21 @@ class MainActivity : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var progressBar: ProgressBar
     private lateinit var textViewEmptyList: TextView
-
     private var fullClientList = listOf<Cliente>()
     private var creditCost = 10.0
     private var monthlyPrice = 30.0
     private var quarterlyPrice = 90.0
+
+    // REGISTRO PARA PEDIR A PERMISSÃO DE NOTIFICAÇÃO
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            Toast.makeText(this, "Permissão para notificações concedida.", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, "Permissão para notificações negada.", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -91,6 +104,19 @@ class MainActivity : AppCompatActivity() {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) { filter(s.toString()) }
         })
+
+        askNotificationPermission()
+    }
+
+    // NOVA FUNÇÃO PARA PEDIR A PERMISSÃO
+    private fun askNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+                PackageManager.PERMISSION_GRANTED
+            ) {
+                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -289,6 +315,7 @@ class MainActivity : AppCompatActivity() {
     private fun showAddClientDialog() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_add_client, null)
         val dueDateEditText = dialogView.findViewById<EditText>(R.id.editTextDueDate)
+        val obsEditText = dialogView.findViewById<EditText>(R.id.editTextObs)
         setupPlanAndValueLogic(dialogView)
 
         dueDateEditText.setOnClickListener {
@@ -304,7 +331,7 @@ class MainActivity : AppCompatActivity() {
             .setView(dialogView)
             .setPositiveButton("Salvar") { _, _ ->
                 val name = dialogView.findViewById<EditText>(R.id.editTextClientName).text.toString()
-                val obs = dialogView.findViewById<EditText>(R.id.editTextObs).text.toString()
+                val obs = obsEditText.text.toString()
                 val plan = dialogView.findViewById<AutoCompleteTextView>(R.id.autoCompletePlan).text.toString()
                 val value = dialogView.findViewById<EditText>(R.id.editTextValue).text.toString().toDoubleOrNull() ?: 0.0
                 val dueDate = dueDateEditText.text.toString()
@@ -392,17 +419,23 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun deleteClient(cliente: Cliente) {
-        AlertDialog.Builder(this)
-            .setTitle("Excluir Cliente")
-            .setMessage("Tem certeza que deseja excluir ${cliente.nome} permanentemente?")
-            .setPositiveButton("Excluir") { _, _ ->
-                cliente.id?.let { clientId ->
-                    clientesCollectionRef.document(clientId).delete()
-                        .addOnSuccessListener { Toast.makeText(this, "${cliente.nome} excluído.", Toast.LENGTH_SHORT).show() }
+    private fun deleteClient(cliente: Cliente, showConfirmation: Boolean = true) {
+        if (showConfirmation) {
+            AlertDialog.Builder(this)
+                .setTitle("Excluir Cliente")
+                .setMessage("Tem certeza que deseja excluir ${cliente.nome} permanentemente?")
+                .setPositiveButton("Excluir") { _, _ ->
+                    cliente.id?.let { clientId ->
+                        clientesCollectionRef.document(clientId).delete()
+                            .addOnSuccessListener { Toast.makeText(this, "${cliente.nome} excluído.", Toast.LENGTH_SHORT).show() }
+                    }
                 }
+                .setNegativeButton("Cancelar", null)
+                .show()
+        } else {
+            cliente.id?.let { clientId ->
+                clientesCollectionRef.document(clientId).delete()
             }
-            .setNegativeButton("Cancelar", null)
-            .show()
+        }
     }
 }

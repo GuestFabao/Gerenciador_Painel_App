@@ -19,6 +19,11 @@ class ClientesAdapter(private val onClientClicked: (Cliente) -> Unit) : Recycler
         notifyDataSetChanged()
     }
 
+    // --- FUNÇÃO ADICIONADA AQUI ---
+    fun getClienteAt(position: Int): Cliente {
+        return clientes[position]
+    }
+
     class ClienteViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val nomeTextView: TextView = itemView.findViewById(R.id.textViewClientName)
         val obsTextView: TextView = itemView.findViewById(R.id.textViewObs)
@@ -50,7 +55,6 @@ class ClientesAdapter(private val onClientClicked: (Cliente) -> Unit) : Recycler
         val cliente = clientes[position]
         holder.nomeTextView.text = cliente.nome
 
-        // Lógica para mostrar ou esconder o campo de observação
         if (cliente.obs.isNotBlank()) {
             holder.obsTextView.visibility = View.VISIBLE
             holder.obsTextView.text = cliente.obs
